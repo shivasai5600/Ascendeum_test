@@ -1,0 +1,86 @@
+q3. coding question - ai allowed
+The Coding Task (20 Minutes)
+The Problem: Write a Python 'Wrapper' script that every Ultron job must run through. This wrapper needs to prevent the server from dying. Create A Semaphore or Rate Limiter: Even if 1,000 jobs are triggered, the script should ensure only $X$ number of "Heavy" jobs (like the Scribd_cpm_map in your screenshot) actually execute their heavy logic at the exact same time. Use maximum 80 code lines.
+
+Ans.
+import os, sys, time, fcntl, logging, subprocess
+ 
+MAX_HEAVY = 3
+LOCK_FILE = "/tmp/ultron.lock"
+COUNT_FILE = "/tmp/ultron.count"
+ 
+HEAVY_JOBS = {
+    "upload_cpm_map_data",
+    "Scribd_cpm_map",
+    "heimdall_performance_reports",
+    "telemetry_daily_discrepancy_report"
+}
+ 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S"
+)
+ 
+job = sys.argv[1]
+cmd = sys.argv[2:]
+ 
+def is_heavy():
+    return job in HEAVY_JOBS
+ 
+def get_count():
+    if os.path.exists(COUNT_FILE):
+        with open(COUNT_FILE) as f:
+            return int(f.read() or 0)
+    return 0
+ 
+def set_count(n):
+    with open(COUNT_FILE, "w") as f:
+        f.write(str(n))
+ 
+def acquire():
+    while True:
+        with open(LOCK_FILE, "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            count = get_count()
+ 
+            if count < MAX_HEAVY:
+                set_count(count + 1)
+                logging.info(f"{job} acquired slot ({count+1}/{MAX_HEAVY})")
+                return
+ 
+            logging.info(f"{job} waiting... ({count}/{MAX_HEAVY} busy)")
+        time.sleep(2)
+ 
+def release():
+    with open(LOCK_FILE, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        count = get_count()
+        set_count(max(0, count - 1))
+        logging.info(f"{job} released slot ({count-1}/{MAX_HEAVY} running)")
+ 
+try:
+    logging.info(f"{job} triggered")
+ 
+    if is_heavy():
+        acquire()
+    else:
+        logging.info(f"{job} is light job, running directly")
+ 
+    logging.info(f"{job} started")
+    rc = subprocess.call(cmd)
+    logging.info(f"{job} completed with code {rc}")
+    sys.exit(rc)
+ 
+finally:
+    if is_heavy():
+        release()
+
+
+q4 commenting question - cant use ai - 10 mins
+write atleast 5 "why" comments in the code
+
+Ans.
+z = ['why', 'why', 'why', 'why', 'why']
+for i in z:
+    print(i)
